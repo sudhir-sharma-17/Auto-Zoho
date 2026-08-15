@@ -9,14 +9,16 @@ from app.database.session import get_db
 from app.database import models
 from app.services.zoho.client import ZohoOAuthService, ZohoExpenseClient, ZohoEntityResolver
 from app.config.config import settings
+from app.api.deps import get_current_admin
 
 router = APIRouter()
+
 
 # Frontend home redirect URL for callbacks
 FRONTEND_HOME = "http://localhost:5173"
 
 @router.get("/status")
-def get_zoho_status(db: Session = Depends(get_db)):
+def get_zoho_status(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Returns the Zoho connection state and organization details.
     """
@@ -30,7 +32,7 @@ def get_zoho_status(db: Session = Depends(get_db)):
     }
 
 @router.get("/connect")
-def initiate_zoho_connection(db: Session = Depends(get_db)):
+def initiate_zoho_connection(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Generates a secure state parameter, stores it locally, and redirects 
     the user to the Zoho Expense authorization grant page.
@@ -68,7 +70,8 @@ def oauth_callback(
     state: str = Query(None),
     error: str = Query(None),
     accounts_server: str = Query(None, alias="accounts-server"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: any = Depends(get_current_admin)
 ):
     """
     Handles user redirection from Zoho Expense OAuth page.
@@ -96,7 +99,7 @@ def oauth_callback(
         return RedirectResponse(f"{FRONTEND_HOME}/?connection=error&error={err_msg}")
 
 @router.post("/disconnect")
-def disconnect_zoho(db: Session = Depends(get_db)):
+def disconnect_zoho(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Clears local database tokens, revokes authorization access in Zoho Accounts, 
     and disconnects the integration.
@@ -111,7 +114,7 @@ def disconnect_zoho(db: Session = Depends(get_db)):
         )
 
 @router.get("/test")
-def test_zoho_connection(db: Session = Depends(get_db)):
+def test_zoho_connection(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Runs diagnostic requests to confirm token validations.
     """
@@ -125,7 +128,7 @@ def test_zoho_connection(db: Session = Depends(get_db)):
     )
 
 @router.get("/reports")
-def get_reports_list(db: Session = Depends(get_db)):
+def get_reports_list(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Fetches the list of active/draft expense reports.
     """
@@ -139,7 +142,7 @@ def get_reports_list(db: Session = Depends(get_db)):
         )
 
 @router.get("/reports/{report_id}")
-def get_report_details(report_id: str, db: Session = Depends(get_db)):
+def get_report_details(report_id: str, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Fetches metadata details for a specific report.
     """
@@ -165,7 +168,7 @@ class TestExpenseCreateRequest(BaseModel):
     gst_non_gst_id: Optional[str] = None
 
 @router.get("/check-scopes")
-def check_zoho_scopes(db: Session = Depends(get_db)):
+def check_zoho_scopes(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Checks if connected credentials have all required scopes for listing and creating.
     """
@@ -195,7 +198,7 @@ def check_zoho_scopes(db: Session = Depends(get_db)):
     }
 
 @router.post("/expenses/test-create")
-def create_test_expense(req: TestExpenseCreateRequest, db: Session = Depends(get_db)):
+def create_test_expense(req: TestExpenseCreateRequest, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """
     Resolves entity IDs for exactly ONE Excel record and creates it in Zoho.
     """
@@ -376,56 +379,56 @@ def create_test_expense(req: TestExpenseCreateRequest, db: Session = Depends(get
 from app.services.zoho.master_data import ZohoMasterDataService
 
 @router.get("/master-data/categories")
-def get_master_categories(db: Session = Depends(get_db)):
+def get_master_categories(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     try:
         return ZohoMasterDataService.get_categories(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch categories: {str(e)}")
 
 @router.get("/master-data/projects")
-def get_master_projects(db: Session = Depends(get_db)):
+def get_master_projects(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     try:
         return ZohoMasterDataService.get_projects(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch projects: {str(e)}")
 
 @router.get("/master-data/vendors")
-def get_master_vendors(db: Session = Depends(get_db)):
+def get_master_vendors(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     try:
         return ZohoMasterDataService.get_vendors(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch vendors: {str(e)}")
 
 @router.get("/master-data/taxes")
-def get_master_taxes(db: Session = Depends(get_db)):
+def get_master_taxes(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     try:
         return ZohoMasterDataService.get_taxes(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch taxes: {str(e)}")
 
 @router.get("/master-data/payment-modes")
-def get_master_payment_modes(db: Session = Depends(get_db)):
+def get_master_payment_modes(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     try:
         return ZohoMasterDataService.get_payment_modes(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch payment modes: {str(e)}")
 
 @router.get("/master-data/expense-kinds")
-def get_master_expense_kinds(db: Session = Depends(get_db)):
+def get_master_expense_kinds(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     try:
         return ZohoMasterDataService.get_expense_kinds(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch expense kinds: {str(e)}")
 
 @router.get("/master-data/gst-options")
-def get_master_gst_options(db: Session = Depends(get_db)):
+def get_master_gst_options(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     try:
         return ZohoMasterDataService.get_gst_options(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch GST options: {str(e)}")
 
 @router.post("/master-data/refresh-cache")
-def refresh_master_cache():
+def refresh_master_cache(admin: any = Depends(get_current_admin)):
     ZohoMasterDataService.clear_cache()
     return {"status": "success", "message": "Master data cache cleared."}
 
@@ -443,7 +446,7 @@ class DryRunRequest(BaseModel):
     nongst_report_id: str
 
 @router.post("/expenses/dry-run")
-def dry_run_preview(req: DryRunRequest, db: Session = Depends(get_db)):
+def dry_run_preview(req: DryRunRequest, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     session = db.query(models.UploadSession).filter(models.UploadSession.id == req.session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Upload session not found.")
@@ -497,7 +500,7 @@ class BulkCreateRequest(BaseModel):
     gst_non_gst_mappings: Optional[Dict[str, str]] = None
 
 @router.post("/expenses/bulk-create")
-def bulk_create_expenses(req: BulkCreateRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def bulk_create_expenses(req: BulkCreateRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     session = db.query(models.UploadSession).filter(models.UploadSession.id == req.session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Upload session not found.")
@@ -547,7 +550,7 @@ def bulk_create_expenses(req: BulkCreateRequest, background_tasks: BackgroundTas
     return {"status": "success", "message": "Bulk creation task started."}
 
 @router.get("/expenses/bulk-status")
-def get_bulk_status(session_id: int, db: Session = Depends(get_db)):
+def get_bulk_status(session_id: int, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     session = db.query(models.UploadSession).filter(models.UploadSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Upload session not found.")
@@ -612,7 +615,7 @@ def get_bulk_status(session_id: int, db: Session = Depends(get_db)):
     }
 
 @router.get("/sessions/{session_id}/error-report")
-def download_error_report(session_id: int, db: Session = Depends(get_db)):
+def download_error_report(session_id: int, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     session = db.query(models.UploadSession).filter(models.UploadSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Upload session not found.")

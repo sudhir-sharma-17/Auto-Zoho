@@ -1,8 +1,9 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 
 from app.database.session import Base
+
 
 class UploadSession(Base):
     __tablename__ = "upload_sessions"
@@ -98,3 +99,50 @@ class AppLockConfig(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     hashed_pin = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+class AdminAuth(Base):
+    __tablename__ = "admin_auth"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    username = Column(String(100), unique=True, nullable=False)
+    email = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=True)
+    password_initialized = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+    last_login_at = Column(DateTime, nullable=True)
+    single_row = Column(Integer, unique=True, default=1, nullable=False)
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+
+    id = Column(String(255), primary_key=True)
+    admin_id = Column(Integer, ForeignKey("admin_auth.id", ondelete="CASCADE"), nullable=False)
+    session_token_hash = Column(String(255), unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    last_activity_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+    ip_address = Column(String(100), nullable=True)
+    user_agent = Column(String(255), nullable=True)
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    admin_id = Column(Integer, ForeignKey("admin_auth.id", ondelete="CASCADE"), nullable=False)
+    token_hash = Column(String(255), unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    attempt_count = Column(Integer, default=0, nullable=False)
+
+class LoginAttempt(Base):
+    __tablename__ = "login_attempts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ip_address = Column(String(100), index=True, nullable=False)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    successful = Column(Boolean, default=False, nullable=False)
+
+

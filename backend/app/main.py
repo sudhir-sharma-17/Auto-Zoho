@@ -10,6 +10,10 @@ from app.database import models
 from app.database.migrations import run_migrations
 from app.api.endpoints import router as api_router
 from app.api.zoho_api import router as zoho_router
+from app.api.auth import router as auth_router, get_or_sync_admin
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
 
 class SensitiveDataFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
@@ -85,13 +89,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def csrf_middleware(request: Request, call_next):
+    # Only enforce on state-changing requests and when not testing
+    import sys
+    csrf_enforced = getattr(settings, "CSRF_ENFORCED", False) or ("pytest" not in sys.modules and settings.ENV != "test")
+    if request.method in ["POST", "PUT", "PATCH", "DELETE"] and csrf_enforced:
+        path = request.url.path
+        public_paths = [
+            "/api/auth/login",
+            "/api/auth/initialize",
+            "/api/auth/forgot-password",
+            "/api/auth/verify-otp",
+            "/api/auth/reset-password",
+            "/api/auth/status"
+        ]
+        if not any(path.startswith(p) for p in public_paths):
+            csrf_cookie = request.cookies.get("csrf_token")
+            csrf_header = request.headers.get("x-csrf-token")
+            
+            if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "CSRF validation failed. Missing or mismatched CSRF token."}
+                )
+                
+    response = await call_next(request)
+    return response
+
 # Register endpoints router
+app.include_router(auth_router, prefix="/api")
 app.include_router(api_router, prefix="/api")
 app.include_router(zoho_router, prefix="/api/zoho", tags=["zoho"])
 
 @app.on_event("startup")
 def on_startup():
     setup_logging()
+    # Sync or precreate single admin identity
+    from app.database.session import SessionLocal
+    db = SessionLocal()
+    try:
+        get_or_sync_admin(db)
+    finally:
+        db.close()
+
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=True)

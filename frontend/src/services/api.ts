@@ -9,9 +9,35 @@ import {
 
 const API_BASE = 'http://localhost:8000/api';
 
+const getCookie = (name: string): string | undefined => {
+  return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1];
+};
+
+const apiFetch = async (url: string, init?: RequestInit): Promise<Response> => {
+  const options = { ...init };
+  options.credentials = 'include';
+  
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method || 'GET')) {
+    const csrfToken = getCookie('csrf_token');
+    if (csrfToken) {
+      options.headers = {
+        ...options.headers,
+        'X-CSRF-Token': csrfToken,
+      };
+    }
+  }
+  
+  const res = await window['fetch'](url, options);
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('auth-unauthorized'));
+  }
+  return res;
+};
+
 export const api = {
+
   getHealth: async (): Promise<{ status: string; message: string }> => {
-    const res = await fetch(`${API_BASE}/health`);
+    const res = await apiFetch(`${API_BASE}/health`);
     if (!res.ok) throw new Error('API server unreachable');
     return res.json();
   },
@@ -20,7 +46,7 @@ export const api = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch(`${API_BASE}/excel/validate`, {
+    const res = await apiFetch(`${API_BASE}/excel/validate`, {
       method: 'POST',
       body: formData,
     });
@@ -44,7 +70,7 @@ export const api = {
   },
 
   getHistory: async (): Promise<UploadSession[]> => {
-    const res = await fetch(`${API_BASE}/uploads/history`);
+    const res = await apiFetch(`${API_BASE}/uploads/history`);
     if (!res.ok) throw new Error('Failed to fetch upload history');
     return res.json();
   },
@@ -58,7 +84,7 @@ export const api = {
     if (filters?.gst) params.append('gst', filters.gst);
     if (filters?.search) params.append('search', filters.search);
 
-    const res = await fetch(`${API_BASE}/uploads/${sessionId}?${params.toString()}`);
+    const res = await apiFetch(`${API_BASE}/uploads/${sessionId}?${params.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch session details');
     return res.json();
   },
@@ -68,7 +94,7 @@ export const api = {
   },
 
   deleteSession: async (sessionId: number): Promise<{ status: string; message: string }> => {
-    const res = await fetch(`${API_BASE}/uploads/${sessionId}`, {
+    const res = await apiFetch(`${API_BASE}/uploads/${sessionId}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete validation session.');
@@ -76,7 +102,7 @@ export const api = {
   },
 
   clearHistory: async (): Promise<{ status: string; message: string }> => {
-    const res = await fetch(`${API_BASE}/uploads/history`, {
+    const res = await apiFetch(`${API_BASE}/uploads/history`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to clear validation history.');
@@ -84,13 +110,13 @@ export const api = {
   },
 
   getZohoStatus: async (): Promise<ZohoStatus> => {
-    const res = await fetch(`${API_BASE}/zoho/status`);
+    const res = await apiFetch(`${API_BASE}/zoho/status`);
     if (!res.ok) throw new Error('Failed to fetch Zoho connection status.');
     return res.json();
   },
 
   disconnectZoho: async (): Promise<{ message: string }> => {
-    const res = await fetch(`${API_BASE}/zoho/disconnect`, {
+    const res = await apiFetch(`${API_BASE}/zoho/disconnect`, {
       method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to disconnect Zoho integration.');
@@ -98,7 +124,7 @@ export const api = {
   },
 
   testZohoConnection: async (): Promise<{ status: string; message: string }> => {
-    const res = await fetch(`${API_BASE}/zoho/test`);
+    const res = await apiFetch(`${API_BASE}/zoho/test`);
     if (!res.ok) {
       let errDetail = 'Connection check failed';
       try {
@@ -111,7 +137,7 @@ export const api = {
   },
 
   getZohoReports: async (): Promise<ZohoReport[]> => {
-    const res = await fetch(`${API_BASE}/zoho/reports`);
+    const res = await apiFetch(`${API_BASE}/zoho/reports`);
     if (!res.ok) {
       let errDetail = 'Failed to load Zoho reports list';
       try {
@@ -124,7 +150,7 @@ export const api = {
   },
 
   getZohoReportDetails: async (reportId: string): Promise<ZohoReportDetails> => {
-    const res = await fetch(`${API_BASE}/zoho/reports/${reportId}`);
+    const res = await apiFetch(`${API_BASE}/zoho/reports/${reportId}`);
     if (!res.ok) {
       let errDetail = 'Failed to load report details';
       try {
@@ -141,7 +167,7 @@ export const api = {
   },
 
   checkZohoScopes: async (): Promise<{ connected: boolean; has_create_scope: boolean }> => {
-    const res = await fetch(`${API_BASE}/zoho/check-scopes`);
+    const res = await apiFetch(`${API_BASE}/zoho/check-scopes`);
     if (!res.ok) throw new Error('Failed to check Zoho authorization scopes.');
     return res.json();
   },
@@ -158,7 +184,7 @@ export const api = {
     expenseKindId?: string | null,
     gstNonGstId?: string | null
   ): Promise<any> => {
-    const res = await fetch(`${API_BASE}/zoho/expenses/test-create`, {
+    const res = await apiFetch(`${API_BASE}/zoho/expenses/test-create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,43 +214,43 @@ export const api = {
   },
 
   getZohoMasterCategories: async (): Promise<any[]> => {
-    const res = await fetch(`${API_BASE}/zoho/master-data/categories`);
+    const res = await apiFetch(`${API_BASE}/zoho/master-data/categories`);
     if (!res.ok) throw new Error('Failed to load Zoho master categories');
     return res.json();
   },
 
   getZohoMasterProjects: async (): Promise<any[]> => {
-    const res = await fetch(`${API_BASE}/zoho/master-data/projects`);
+    const res = await apiFetch(`${API_BASE}/zoho/master-data/projects`);
     if (!res.ok) throw new Error('Failed to load Zoho master projects');
     return res.json();
   },
 
   getZohoMasterVendors: async (): Promise<any[]> => {
-    const res = await fetch(`${API_BASE}/zoho/master-data/vendors`);
+    const res = await apiFetch(`${API_BASE}/zoho/master-data/vendors`);
     if (!res.ok) throw new Error('Failed to load Zoho master vendors');
     return res.json();
   },
 
   getZohoMasterTaxes: async (): Promise<any[]> => {
-    const res = await fetch(`${API_BASE}/zoho/master-data/taxes`);
+    const res = await apiFetch(`${API_BASE}/zoho/master-data/taxes`);
     if (!res.ok) throw new Error('Failed to load Zoho master taxes');
     return res.json();
   },
 
   getZohoMasterPaymentModes: async (): Promise<any[]> => {
-    const res = await fetch(`${API_BASE}/zoho/master-data/payment-modes`);
+    const res = await apiFetch(`${API_BASE}/zoho/master-data/payment-modes`);
     if (!res.ok) throw new Error('Failed to load Zoho master payment modes');
     return res.json();
   },
 
   getZohoMasterExpenseKinds: async (): Promise<any[]> => {
-    const res = await fetch(`${API_BASE}/zoho/master-data/expense-kinds`);
+    const res = await apiFetch(`${API_BASE}/zoho/master-data/expense-kinds`);
     if (!res.ok) throw new Error('Failed to load Zoho master expense kinds');
     return res.json();
   },
 
   getZohoMasterGstOptions: async (): Promise<any[]> => {
-    const res = await fetch(`${API_BASE}/zoho/master-data/gst-options`);
+    const res = await apiFetch(`${API_BASE}/zoho/master-data/gst-options`);
     if (!res.ok) throw new Error('Failed to load Zoho master GST options');
     return res.json();
   },
@@ -242,7 +268,7 @@ export const api = {
     expenseKindMappings?: Record<string, string>,
     gstNonGstMappings?: Record<string, string>
   ): Promise<any> => {
-    const res = await fetch(`${API_BASE}/zoho/expenses/bulk-create`, {
+    const res = await apiFetch(`${API_BASE}/zoho/expenses/bulk-create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -273,7 +299,7 @@ export const api = {
   },
 
   getBulkStatus: async (sessionId: number): Promise<any> => {
-    const res = await fetch(`${API_BASE}/zoho/expenses/bulk-status?session_id=${sessionId}`);
+    const res = await apiFetch(`${API_BASE}/zoho/expenses/bulk-status?session_id=${sessionId}`);
     if (!res.ok) throw new Error('Failed to fetch bulk creation status');
     return res.json();
   },
@@ -287,7 +313,7 @@ export const api = {
     gstReportId: string,
     nongstReportId: string
   ): Promise<any> => {
-    const res = await fetch(`${API_BASE}/zoho/expenses/dry-run`, {
+    const res = await apiFetch(`${API_BASE}/zoho/expenses/dry-run`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -310,13 +336,13 @@ export const api = {
   },
 
   getLockStatus: async (): Promise<{ has_pin: boolean }> => {
-    const res = await fetch(`${API_BASE}/lock/status`);
+    const res = await apiFetch(`${API_BASE}/lock/status`);
     if (!res.ok) throw new Error('Failed to fetch PIN lock status.');
     return res.json();
   },
 
   setupPin: async (pin: string): Promise<any> => {
-    const res = await fetch(`${API_BASE}/lock/setup`, {
+    const res = await apiFetch(`${API_BASE}/lock/setup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -335,7 +361,7 @@ export const api = {
   },
 
   verifyPin: async (pin: string): Promise<{ verified: boolean }> => {
-    const res = await fetch(`${API_BASE}/lock/verify`, {
+    const res = await apiFetch(`${API_BASE}/lock/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -354,7 +380,7 @@ export const api = {
   },
 
   disablePin: async (pin: string): Promise<any> => {
-    const res = await fetch(`${API_BASE}/lock/disable`, {
+    const res = await apiFetch(`${API_BASE}/lock/disable`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -370,5 +396,96 @@ export const api = {
       throw new Error(errDetail);
     }
     return res.json();
+  },
+
+  getAuthStatus: async (): Promise<{ initialized: boolean; authenticated: boolean; username: string | null; email: string | null }> => {
+    const res = await apiFetch(`${API_BASE}/auth/status`);
+    if (!res.ok) throw new Error('Failed to fetch auth status');
+    return res.json();
+  },
+
+  initializeAdmin: async (payload: { new_password: string; confirm_password: string; initialization_secret: string }): Promise<any> => {
+    const res = await apiFetch(`${API_BASE}/auth/initialize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Initialization failed');
+    }
+    return res.json();
+  },
+
+  login: async (payload: { username: string; password: string }): Promise<any> => {
+    const res = await apiFetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Login failed');
+    }
+    return res.json();
+  },
+
+  logout: async (): Promise<any> => {
+    const res = await apiFetch(`${API_BASE}/auth/logout`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Logout failed');
+    return res.json();
+  },
+
+  forgotPassword: async (): Promise<any> => {
+    const res = await apiFetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Forgot password request failed');
+    }
+    return res.json();
+  },
+
+  verifyOtp: async (otp: string): Promise<{ status: string; reset_token: string }> => {
+    const res = await apiFetch(`${API_BASE}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'OTP verification failed');
+    }
+    return res.json();
+  },
+
+  resetPassword: async (payload: { reset_token: string; new_password: string; confirm_password: string }): Promise<any> => {
+    const res = await apiFetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Password reset failed');
+    }
+    return res.json();
+  },
+
+  changePassword: async (payload: { current_password: string; new_password: string; confirm_password: string }): Promise<any> => {
+    const res = await apiFetch(`${API_BASE}/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Password update failed');
+    }
+    return res.json();
   }
 };
+

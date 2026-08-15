@@ -7,7 +7,8 @@ import {
   Layers,
   AlertTriangle,
   Sun,
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -17,6 +18,7 @@ interface DashboardLayoutProps {
   setActiveTab: (tab: string) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  onLogout: () => void;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ 
@@ -24,7 +26,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   activeTab, 
   setActiveTab,
   theme,
-  toggleTheme
+  toggleTheme,
+  onLogout
 }) => {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
@@ -94,6 +97,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </button>
             );
           })}
+          
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer mt-6 text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/20"
+          >
+            <LogOut className="h-4.5 w-4.5 text-rose-500 dark:text-rose-400" />
+            Logout
+          </button>
         </nav>
 
         {/* Connection status indicator */}

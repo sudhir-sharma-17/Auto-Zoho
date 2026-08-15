@@ -46,7 +46,14 @@ def db_session():
 @pytest.fixture(scope="function")
 def test_client(db_session):
     from app.database.session import get_db
+    from app.api.deps import get_current_admin
     app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_current_admin] = lambda: models.AdminAuth(
+        id=1,
+        username="admin",
+        email="admin@example.com",
+        password_initialized=True
+    )
     with TestClient(app) as client:
         yield client
     app.dependency_overrides.clear()

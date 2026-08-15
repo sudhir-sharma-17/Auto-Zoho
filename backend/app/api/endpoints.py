@@ -11,8 +11,10 @@ from app.services.excel import parser
 from app.services.validation import validator, report_generator
 from app.services.upload import history_service
 from app.config.config import settings
+from app.api.deps import get_current_admin
 
 router = APIRouter()
+
 
 @router.get("/health")
 def health_check():
@@ -22,7 +24,8 @@ def health_check():
 @router.post("/excel/validate", response_model=schemas.ExcelValidationResponse)
 def validate_excel(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: any = Depends(get_current_admin)
 ):
     """
     Uploads, parses, and validates an Excel spreadsheet.
@@ -184,18 +187,18 @@ def validate_excel(
     }
 
 @router.get("/uploads/history", response_model=List[schemas.UploadSessionOut])
-def get_history(db: Session = Depends(get_db)):
+def get_history(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """Fetches all past upload validation sessions."""
     return history_service.get_all_sessions(db)
 
 @router.delete("/uploads/history")
-def clear_history(db: Session = Depends(get_db)):
+def clear_history(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """Deletes all validation sessions and clears history completely."""
     history_service.clear_all_history(db)
     return {"status": "success", "message": "All validation history has been cleared."}
 
 @router.delete("/uploads/{session_id}")
-def delete_session(session_id: int, db: Session = Depends(get_db)):
+def delete_session(session_id: int, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """Deletes a specific validation session and its database records."""
     success = history_service.delete_session(db, session_id)
     if not success:
@@ -211,7 +214,8 @@ def get_session_details(
     status_filter: Optional[str] = Query(None, alias="status"),
     gst_filter: Optional[str] = Query(None, alias="gst"),
     search_query: Optional[str] = Query(None, alias="search"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: any = Depends(get_current_admin)
 ):
     """
     Fetches details of a specific validation session,
@@ -248,7 +252,7 @@ def get_session_details(
     }
 
 @router.get("/uploads/{session_id}/errors")
-def download_error_report(session_id: int, db: Session = Depends(get_db)):
+def download_error_report(session_id: int, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     """Downloads the Excel report containing invalid rows for this session."""
     session_info = history_service.get_session_by_id(db, session_id)
     if not session_info:
@@ -278,14 +282,14 @@ class PinVerifyPayload(BaseModel):
     pin: str
 
 @router.get("/lock/status")
-def get_lock_status(db: Session = Depends(get_db)):
+def get_lock_status(db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     from app.database import models
     config = db.query(models.AppLockConfig).first()
     has_pin = config is not None and config.hashed_pin is not None
     return {"has_pin": has_pin}
 
 @router.post("/lock/setup")
-def setup_pin(payload: PinSetupPayload, db: Session = Depends(get_db)):
+def setup_pin(payload: PinSetupPayload, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     from app.database import models
     from app.security.encryption import hash_pin
     config = db.query(models.AppLockConfig).first()
@@ -299,7 +303,7 @@ def setup_pin(payload: PinSetupPayload, db: Session = Depends(get_db)):
     return {"status": "success", "message": "PIN setup successful."}
 
 @router.post("/lock/verify")
-def verify_app_pin(payload: PinVerifyPayload, db: Session = Depends(get_db)):
+def verify_app_pin(payload: PinVerifyPayload, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     from app.database import models
     from app.security.encryption import verify_pin
     config = db.query(models.AppLockConfig).first()
@@ -312,7 +316,7 @@ def verify_app_pin(payload: PinVerifyPayload, db: Session = Depends(get_db)):
     return {"verified": True}
 
 @router.post("/lock/disable")
-def disable_pin(payload: PinVerifyPayload, db: Session = Depends(get_db)):
+def disable_pin(payload: PinVerifyPayload, db: Session = Depends(get_db), admin: any = Depends(get_current_admin)):
     from app.database import models
     from app.security.encryption import verify_pin
     config = db.query(models.AppLockConfig).first()

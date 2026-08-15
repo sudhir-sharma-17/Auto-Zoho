@@ -32,6 +32,13 @@ def client():
             
     # Override get_db dependency
     app.dependency_overrides[get_db] = override_get_db
+    from app.api.deps import get_current_admin
+    app.dependency_overrides[get_current_admin] = lambda: models.AdminAuth(
+        id=1,
+        username="admin",
+        email="admin@example.com",
+        password_initialized=True
+    )
     
     with TestClient(app) as test_client:
         yield test_client

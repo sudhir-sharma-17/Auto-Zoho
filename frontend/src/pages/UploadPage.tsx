@@ -374,7 +374,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigateToTab }) => {
 
     if (bulkIsRunning && validationData) {
       checkStatus(); // Initial call
-      timer = setInterval(checkStatus, 1500);
+      timer = setInterval(checkStatus, 500);
     }
     
     return () => {
@@ -1862,10 +1862,41 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigateToTab }) => {
               </div>
             </div>
             
-            <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-[10px] font-semibold flex items-center gap-2 dark:bg-amber-950/40 dark:border-amber-900/50 dark:text-amber-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse"></span>
-              <span>🔒 Controls locked during bulk posting. Do not close this browser tab.</span>
-            </div>
+            {bulkIsRunning ? (
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-[10px] font-semibold flex items-center gap-2 dark:bg-amber-950/40 dark:border-amber-900/50 dark:text-amber-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse"></span>
+                <span>🔒 Controls locked during bulk posting. Do not close this browser tab.</span>
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1">
+                <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-800 text-xs font-semibold flex items-center justify-center gap-2 dark:bg-emerald-950/40 dark:border-emerald-900/50 dark:text-emerald-400">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Processing Complete! All expenses processed.</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => setActiveStep(8)}
+                    className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    View Summary & Results →
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setShowResultsDrawer(true)}
+                      className="py-2 px-3 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold cursor-pointer dark:bg-slate-700"
+                    >
+                      View Outcomes Log
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="py-2 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer dark:border-slate-800 dark:text-slate-300"
+                    >
+                      Start New Upload
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {bulkError && (
               <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg text-rose-700 text-xs text-left dark:bg-rose-950/40 dark:border-rose-900/50 dark:text-rose-455">

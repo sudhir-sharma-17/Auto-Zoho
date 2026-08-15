@@ -28,6 +28,19 @@ class Settings(BaseSettings):
     ZOHO_API_URL: str = "https://www.zohoapis.com/expense/v1"
     ZOHO_TOKEN_ENCRYPTION_KEY: str = ""
 
+    # Admin Authentication Configurations
+    AUTO_ZOHO_ADMIN_USERNAME: str = "admin"
+    AUTO_ZOHO_ADMIN_EMAIL: str = "admin@example.com"
+    ADMIN_INITIALIZATION_SECRET: str = ""
+
+    # SMTP Configuration
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+
+
     class Config:
         env_file = os.path.join(BASE_DIR, ".env")
         extra = "ignore"

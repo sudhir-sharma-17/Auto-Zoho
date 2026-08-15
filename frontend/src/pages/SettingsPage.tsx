@@ -22,6 +22,10 @@ export const SettingsPage: React.FC = () => {
 
   // Zoho states
   const [connected, setConnected] = useState<boolean>(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [hasCreateScope, setHasCreateScope] = useState<boolean>(true);
   const [orgName, setOrgName] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -142,6 +146,38 @@ export const SettingsPage: React.FC = () => {
     } catch (err: any) {
       setToastMessage(err.message || "Failed to update security changes.");
       setTimeout(() => setToastMessage(null), 4000);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      setToastMessage("New password must be at least 8 characters long.");
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setToastMessage("New passwords do not match.");
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await api.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      });
+      setToastMessage("Password changed successfully!");
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err: any) {
+      setToastMessage(err.message || "Failed to change password.");
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -366,6 +402,74 @@ export const SettingsPage: React.FC = () => {
               }`}
             >
               {hasPin ? "Disable PIN Lock" : "Enable PIN Lock"}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Security settings / Change Password */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden dark:bg-slate-900 dark:border-slate-800">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3 dark:border-slate-800">
+          <Lock className="h-5 w-5 text-indigo-500" />
+          <h4 className="font-semibold text-slate-950 dark:text-slate-100">Administrator Credentials</h4>
+          <span className="ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+            Protected
+          </span>
+        </div>
+        <div className="p-6 space-y-6">
+          <p className="text-xs text-slate-500 leading-relaxed font-normal dark:text-slate-400">
+            Change your administrator login password. For security, updating your password will automatically terminate all other active login sessions.
+          </p>
+
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">
+                Current Password
+              </label>
+              <input
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 dark:bg-slate-950/50 dark:border-slate-800 dark:text-slate-100"
+                placeholder="Enter current password"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">
+                New Password
+              </label>
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 dark:bg-slate-950/50 dark:border-slate-800 dark:text-slate-100"
+                placeholder="Minimum 8 characters"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">
+                Confirm New Password
+              </label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 dark:bg-slate-950/50 dark:border-slate-800 dark:text-slate-100"
+                placeholder="Confirm new password"
+              />
+            </div>
+            
+            <button
+              type="submit"
+              disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {passwordLoading ? "Updating..." : "Update Password"}
             </button>
           </form>
         </div>
