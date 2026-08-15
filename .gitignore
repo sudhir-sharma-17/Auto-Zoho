@@ -1,0 +1,59 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+test_api_temp.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Excel spreadsheets and business data
+*.xlsx
+*.xls
+*.csv
+Sample dataset.xlsx
+
+# Runtime folders
+data/
+uploads/
+logs/
+*.log
+
+# Node dependencies and build artifacts
+node_modules/
+dist/
+build/
+dist-ssr/
+.eslintcache
+
+# Python caches and coverage reports
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+myenv/
+
+# Editor files and system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+tokens/
