@@ -16,10 +16,19 @@ from app.api.deps import get_current_admin
 router = APIRouter()
 
 
+import sqlalchemy
+
 @router.get("/health")
-def health_check():
-    """Health check endpoint."""
-    return {"status": "ok", "message": "FastAPI server is running normally."}
+def health_check(db: Session = Depends(get_db)):
+    """Health check endpoint verifying application and database availability."""
+    try:
+        db.execute(sqlalchemy.text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}
+    except Exception:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "database": "disconnected"}
+        )
 
 @router.post("/excel/validate", response_model=schemas.ExcelValidationResponse)
 def validate_excel(

@@ -1,48 +1,57 @@
-import smtplib
-from email.mime.text import MIMEText
 import logging
+import httpx
 from app.config.config import settings
 
 logger = logging.getLogger("app.services.email")
 
 def send_reset_code_email(to_email: str, code: str) -> bool:
-    """Sends a password reset OTP verification code via SMTP."""
-    if not settings.SMTP_HOST:
-        logger.warning(f"SMTP is not configured. Reset OTP code is: {code} (for development)")
-        return False
-        
-    subject = "AUTO-ZOHO Administrator Password Reset Verification"
+    """Sends a password reset OTP verification code via Brevo REST API or falls back to logging in development."""
+    subject = "Auto-Zoho Password Reset Code"
     body = (
-        "Hello,\n\n"
-        "You have requested to reset your AUTO-ZOHO administrator password.\n"
-        f"Your verification code is: {code}\n\n"
-        "This code will expire in 10 minutes.\n"
-        "If you did not request this, please ignore this email.\n\n"
-        "Regards,\n"
-        "AUTO-ZOHO System"
+        f"Your Auto-Zoho password reset code is: {code}\n\n"
+        "This code expires in 10 minutes.\n\n"
+        "If you did not request this password reset, ignore this email."
     )
+
+    if not settings.BREVO_API_KEY:
+        if settings.ENV in ["development", "test"]:
+            logger.warning(
+                f"[DEVELOPMENT ONLY] Brevo API Key not configured. "
+                f"Password reset OTP is: {code} (for to_email: {to_email})"
+            )
+        else:
+            logger.warning("Brevo API Key not configured. Reset email not sent.")
+        return False
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "api-key": settings.BREVO_API_KEY,
+        "content-type": "application/json",
+        "accept": "application/json"
+    }
     
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = settings.SMTP_FROM_EMAIL or "noreply@example.com"
-    msg["To"] = to_email
-    
+    payload = {
+        "sender": {
+            "name": settings.BREVO_FROM_NAME or "Auto-Zoho",
+            "email": settings.BREVO_FROM_EMAIL
+        },
+        "to": [
+            {"email": to_email}
+        ],
+        "subject": subject,
+        "textContent": body
+    }
+
     try:
-        # Connect to SMTP server
-        server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
-        server.ehlo()
-        # Start TLS if port is standard submission port (587)
-        if settings.SMTP_PORT == 587:
-            server.starttls()
-            server.ehlo()
-            
-        if settings.SMTP_USERNAME and settings.SMTP_PASSWORD:
-            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-            
-        server.sendmail(msg["From"], [to_email], msg.as_string())
-        server.quit()
-        logger.info(f"Successfully sent reset code email to {to_email}")
-        return True
+        response = httpx.post(url, headers=headers, json=payload, timeout=10.0)
+        if response.status_code in [200, 201, 202]:
+            logger.info(f"Successfully sent reset code email via Brevo REST API to client recipient")
+            return True
+        else:
+            logger.error(
+                f"Brevo API returned error status: {response.status_code}, Response: {response.text}"
+            )
+            return False
     except Exception as e:
-        logger.error(f"Failed to send email via SMTP: {str(e)}")
+        logger.error(f"Failed to send email via Brevo REST API: {str(e)}")
         return False

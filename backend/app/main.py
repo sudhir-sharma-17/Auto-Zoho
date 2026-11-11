@@ -4,7 +4,7 @@ import re
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config.config import settings
+from app.config.config import settings, BASE_DIR
 from app.database.session import engine, Base
 from app.database import models
 from app.database.migrations import run_migrations
@@ -117,14 +117,58 @@ async def csrf_middleware(request: Request, call_next):
     response = await call_next(request)
     return response
 
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 # Register endpoints router
 app.include_router(auth_router, prefix="/api")
 app.include_router(api_router, prefix="/api")
 app.include_router(zoho_router, prefix="/api/zoho", tags=["zoho"])
 
+# Static asset serving for Production full-stack deployment (React dist)
+import os
+from fastapi import HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+frontend_dist = os.path.abspath(os.path.join(BASE_DIR, "frontend", "dist"))
+if os.path.exists(frontend_dist):
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api/") or full_path == "api":
+            raise HTTPException(status_code=404, detail="API route not found")
+        
+        target_file = os.path.join(frontend_dist, full_path)
+        if os.path.isfile(target_file):
+            return FileResponse(target_file)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+
+
 @app.on_event("startup")
 def on_startup():
     setup_logging()
+    
+    # Run Alembic migrations on startup if configured
+    try:
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg_path = os.path.join(BASE_DIR, "backend", "alembic.ini")
+        if os.path.exists(alembic_cfg_path):
+            alembic_cfg = Config(alembic_cfg_path)
+            alembic_cfg.set_main_option("script_location", os.path.join(BASE_DIR, "backend", "alembic"))
+            command.upgrade(alembic_cfg, "head")
+    except Exception as e:
+        logging.warning(f"Startup database migration note: {e}")
+
     # Sync or precreate single admin identity
     from app.database.session import SessionLocal
     db = SessionLocal()
@@ -136,3 +180,4 @@ def on_startup():
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=True)
+

@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: auto-zoho-app
+    runtime: python
+    region: oregon
+    plan: starter
+    buildCommand: "./build.sh"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: auto-zoho-db
+          property: connectionString
+      - key: ZOHO_REDIRECT_URI
+        sync: false
+      - key: ZOHO_CLIENT_ID
+        sync: false
+      - key: ZOHO_CLIENT_SECRET
+        sync: false
+      - key: ZOHO_TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: ZOHO_ACCOUNTS_URL
+        value: https://accounts.zoho.com
+      - key: ZOHO_API_URL
+        value: https://www.zohoapis.com/expense/v1
+      - key: AUTO_ZOHO_ADMIN_USERNAME
+        sync: false
+      - key: AUTO_ZOHO_ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_INITIALIZATION_SECRET
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        sync: false
+      - key: BREVO_FROM_NAME
+        value: Auto-Zoho
+
+databases:
+  - name: auto-zoho-db
+    plan: starter
+    databaseName: auto_zoho_db
+    user: auto_zoho_user

@@ -168,3 +168,29 @@ This application implements the following security protocols:
 * **Passcode Hashing:** Numeric passcodes are hashed using **PBKDF2-HMAC-SHA256** with 100,000 iterations before logging configuration.
 * **No Automatic Submissions:** The application **strictly creates** expense entries in the selected reports. It **never** submits, approves, or reimburses reports automatically. The final submission workflow remains a manual action inside the Zoho Expense web console.
 * **Runtime Isolation:** Active SQLite database files (`*.db`), temporary spreadsheet copies, logs (`logs/`), and exports are ignored by `.gitignore`.
+
+---
+
+## 🚀 PRODUCTION DEPLOYMENT (RENDER)
+
+AUTO-ZOHO is configured for single-service full-stack deployment on **Render**:
+
+### Deployment Steps:
+1. **GitHub Repository**: Push your code repository to GitHub (ensure `.env` and `.db` files are NOT committed).
+2. **Create Render Blueprint**:
+   - Go to [Render Dashboard](https://dashboard.render.com/) $\rightarrow$ **New** $\rightarrow$ **Blueprint**.
+   - Connect your GitHub repository containing `render.yaml`.
+3. **Configure Environment Secrets**:
+   Set the required production environment variables in the Render web console:
+   - `ZOHO_CLIENT_ID` & `ZOHO_CLIENT_SECRET` (From your Zoho Developer Console)
+   - `ZOHO_REDIRECT_URI` (`https://<your-app-name>.onrender.com/api/zoho/callback`)
+   - `AUTO_ZOHO_ADMIN_USERNAME` & `AUTO_ZOHO_ADMIN_EMAIL`
+   - `ADMIN_INITIALIZATION_SECRET`
+   - `BREVO_API_KEY`, `BREVO_FROM_EMAIL`, `BREVO_FROM_NAME` (For production password resets via Brevo)
+4. **Update Zoho Developer Console**:
+   Add `https://<your-app-name>.onrender.com/api/zoho/callback` as an Authorized Redirect URI in your Zoho Developer Console.
+5. **Initialize Admin Password**:
+   Upon first deployment, open `https://<your-app-name>.onrender.com`. Complete the initial password setup using your `ADMIN_INITIALIZATION_SECRET`.
+6. **Log In & Connect Zoho**:
+   Log in with your administrator credentials, navigate to **Settings**, connect your Zoho Expense organization, and begin uploading batches!
+

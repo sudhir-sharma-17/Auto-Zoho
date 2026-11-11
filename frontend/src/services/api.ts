@@ -7,7 +7,7 @@ import {
   ZohoReportDetails
 } from '../types';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:8000/api' : '/api';
 
 const getCookie = (name: string): string | undefined => {
   return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1];

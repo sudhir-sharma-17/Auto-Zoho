@@ -33,12 +33,10 @@ class Settings(BaseSettings):
     AUTO_ZOHO_ADMIN_EMAIL: str = "admin@example.com"
     ADMIN_INITIALIZATION_SECRET: str = ""
 
-    # SMTP Configuration
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
-    SMTP_USERNAME: str = ""
-    SMTP_PASSWORD: str = ""
-    SMTP_FROM_EMAIL: str = ""
+    # Brevo Transactional Email Configuration
+    BREVO_API_KEY: str = ""
+    BREVO_FROM_EMAIL: str = ""
+    BREVO_FROM_NAME: str = "Auto-Zoho"
 
 
     class Config:

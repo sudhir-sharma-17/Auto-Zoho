@@ -67,7 +67,7 @@ def test_health_endpoint(client):
     """Verifies standard GET /api/health check returns success."""
     res = client.get("/api/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok", "message": "FastAPI server is running normally."}
+    assert res.json() == {"status": "healthy", "database": "connected"}
 
 def test_excel_validation_flow(client, excel_file):
     """Tests POST /api/excel/validate, database insertions, statistics calculations, and error report mapping."""
